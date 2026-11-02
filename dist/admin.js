@@ -14,7 +14,7 @@ const demoTrainingRecords={
  u5:[{title:'企业文化与价值观',minutes:45,passed:true},{title:'信息安全培训',minutes:30,passed:true},{title:'产品基础介绍',minutes:40,passed:false}]
 };
 let adminData;try{adminData=JSON.parse(localStorage.getItem('learning-admin-v1')||'null')||structuredClone(defaultAdminData)}catch{adminData=JSON.parse(JSON.stringify(defaultAdminData))}
-let adminView={filter:'全部',period:'本月',department:null};
+let adminView={filter:'全部',period:'本月',department:null,courseFilters:{query:'',category:'',audience:''}};
 function saveAdmin(){try{localStorage.setItem('learning-admin-v1',JSON.stringify(adminData))}catch{}}
 const adminKpis=[['进行中培训','6','plans','#fff0c2','exam'],['培训完成率','84%','learning','#dcecff','chart'],['待催学','12 人','learning','#e9e1fa','history'],['待考试','2 场','exams','#def3e9','exam']];
 function loginPage(){return `<main class="login-page"><div class="login-decor decor-one"></div><div class="login-decor decor-two"></div><div class="login-shell"><div class="login-intro"><span class="login-brand">${icon('logo')} 学习空间</span><p class="login-kicker">LEARNING SPACE</p><h1>培训平台</h1><p class="login-subtitle">员工端 · HR 管理端</p><div class="login-art" aria-hidden="true"><div class="ring"></div><div class="orb"></div><div class="pill"></div></div></div><section class="login-card" aria-labelledby="login-title"><div class="login-icon">${icon('book')}</div><h2 id="login-title">欢迎进入学习空间</h2><p>选择体验身份，进入对应页面。</p><form id="login-form"><fieldset class="role-choice"><legend>体验身份</legend><label class="role-option"><input type="radio" name="role" value="employee" checked><span class="role-symbol">${icon('book')}</span><span><strong>员工端</strong><small>学习课程、参加考试、查看记录</small></span><span class="role-radio"></span></label><label class="role-option"><input type="radio" name="role" value="hr"><span class="role-symbol hr">${icon('chart')}</span><span><strong>HR 管理端</strong><small>发布培训、跟进学习、查看数据</small></span><span class="role-radio"></span></label></fieldset><button class="primary login-submit" type="submit">进入演示 ${icon('arrow')}</button></form><p class="login-note">原型演示入口，不连接企业账号。</p></section></div></main>`}
@@ -26,7 +26,56 @@ function adminHeader(title,desc,action=''){return `<div class="admin-page-head">
 function adminHome(){return `${adminHeader('上午好，HR 管理员','今天的培训进展与待处理事项一目了然。')}<div class="admin-kpis">${adminKpis.map(([label,value,target,color,ic])=>`<button class="admin-kpi" data-nav="admin-${target}" style="background:${color}"><span>${icon(ic)}${label}</span><strong>${value}</strong><small>查看详情 ${icon('arrow')}</small></button>`).join('')}</div><div class="admin-home-grid">${adminPanel('待处理',`<div class="admin-todo"><span class="todo-mark yellow">01</span><div><strong>12 位员工待完成信息安全培训</strong><p>截止 11 月 15 日</p></div>${adminButton('查看名单','view-learning','')}</div><div class="admin-todo"><span class="todo-mark blue">02</span><div><strong>新员工入职考试即将截止</strong><p>截止 11 月 16 日 · 28 人参与</p></div>${adminButton('查看考试','view-exams','')}</div><div class="admin-todo"><span class="todo-mark purple">03</span><div><strong>2 门新课程等待发布</strong><p>跨部门协作实践、职场表达技巧</p></div>${adminButton('查看课程','view-courses','')}</div>`)}${adminPanel('培训进度',adminData.plans.map(p=>`<button class="plan-progress" data-admin-edit="plan" data-id="${p.id}"><span><strong>${esc(p.title)}</strong><small>${p.progress}%</small></span><span class="admin-track"><i style="width:${p.progress}%"></i></span></button>`).join(''))}</div><div class="admin-lower-grid">${adminPanel('即将截止',`<div class="admin-deadline"><span>11.15</span><strong>全员信息安全培训</strong>${status('进行中')}</div><div class="admin-deadline"><span>11.16</span><strong>新员工入职考试</strong>${status('进行中')}</div>`)}${adminPanel('快捷入口',`<div class="admin-quick"><button data-admin-action="new-plan">${icon('exam')}新建培训计划 ${icon('arrow')}</button><button data-admin-action="new-course">${icon('book')}添加课程 ${icon('arrow')}</button><button data-nav="admin-config">${icon('spark')}配置员工首页 ${icon('arrow')}</button></div>`)}</div>`}
 function courseAudience(course){const target=course?.audienceTarget;return target&&['all','departments','people'].includes(target.mode)?{mode:target.mode,values:Array.isArray(target.values)?target.values.map(String):[]}:{mode:'unset',values:[]}}
 function courseAudienceLabel(course){const target=courseAudience(course);if(target.mode==='unset')return '未指定';if(target.mode==='all')return `全体员工 · ${adminData.people.length} 人`;if(target.mode==='departments'){const names=target.values;const count=adminData.people.filter(p=>names.includes(p.department)).length;return `${names.join('、')||'未选择部门'} · ${count} 人`}const people=adminData.people.filter(p=>target.values.includes(p.id));return `${people.slice(0,2).map(p=>p.name).join('、')||'未选择员工'}${people.length>2?'等':''} · ${people.length} 人`}
-function adminCourses(){const list=adminData.courses.filter(c=>adminView.filter==='全部'||c.status===adminView.filter);return `${adminHeader('课程管理','维护课程内容与发布状态。',adminButton('＋ 添加课程','new-course','','primary'))}<div class="admin-filters">${['全部','已发布','草稿'].map(f=>`<button data-admin-tab="${f}" class="${adminView.filter===f?'active':''}">${f}</button>`).join('')}</div>${adminPanel('课程列表',adminTable(['课程名称','分类','面向学员','学习人数','状态','操作'],list.map(c=>`<tr><td><strong>${esc(c.title)}</strong></td><td>${esc(c.category)}</td><td class="course-audience-cell">${esc(courseAudienceLabel(c))}</td><td>${c.students} 人</td><td>${status(c.status)}</td><td><button class="admin-link" data-admin-edit="course" data-id="${c.id}">编辑</button>${c.status==='草稿'?`<button class="admin-link" data-admin-action="publish-course" data-id="${c.id}">发布</button>`:''}</td></tr>`)))}`}
+function filteredAdminCourses(){
+ const {query,category,audience}=adminView.courseFilters;
+ const keyword=query.trim().toLocaleLowerCase();
+ return adminData.courses.filter(course=>
+  (adminView.filter==='全部'||course.status===adminView.filter)&&
+  (!keyword||String(course.title).toLocaleLowerCase().includes(keyword))&&
+  (!category||course.category===category)&&
+  (!audience||courseAudience(course).mode===audience)
+ );
+}
+function hasCourseFilters(){const {query,category,audience}=adminView.courseFilters;return adminView.filter!=='全部'||Boolean(query||category||audience)}
+function adminCourseTable(list){
+ const rows=list.map(c=>`<tr><td><strong>${esc(c.title)}</strong></td><td>${esc(c.category)}</td><td class="course-audience-cell">${esc(courseAudienceLabel(c))}</td><td>${c.students} 人</td><td>${status(c.status)}</td><td><button class="admin-link" data-admin-edit="course" data-id="${esc(c.id)}">编辑</button>${c.status==='草稿'?`<button class="admin-link" data-admin-action="publish-course" data-id="${esc(c.id)}">发布</button>`:''}</td></tr>`);
+ const empty=adminData.courses.length?'<div class="course-filter-empty"><strong>没有符合条件的课程</strong><p>试试其他课程名称或放宽筛选条件。</p><button class="admin-btn soft" type="button" data-reset-course-filters>清空筛选</button></div>':'<div class="course-filter-empty"><strong>暂无课程</strong><p>点击右上角「添加课程」，建立第一门课程。</p></div>';
+ return adminTable(['课程名称','分类','面向学员','学习人数','状态','操作'],rows,empty);
+}
+function courseFilterCount(list){return `显示 ${list.length} / 共 ${adminData.courses.length} 门课程`}
+function adminCourses(){
+ const filters=adminView.courseFilters,list=filteredAdminCourses();
+ const categories=[...new Set([...adminData.courses.map(c=>c.category).filter(Boolean),...(filters.category?[filters.category]:[])])].sort((a,b)=>a.localeCompare(b,'zh-CN'));
+ const controls=`<div class="course-filter-bar" role="search" aria-label="课程筛选">
+  <label class="course-filter-search" for="admin-course-query"><span>课程名称</span><span class="course-filter-input">${icon('search')}<input id="admin-course-query" type="search" placeholder="输入课程名称" value="${esc(filters.query)}" maxlength="120" aria-controls="admin-course-results"></span></label>
+  <label for="admin-course-category"><span id="course-category-label">课程分类</span><select id="admin-course-category" data-course-filter="category" aria-labelledby="course-category-label" aria-controls="admin-course-results"><option value="">全部分类</option>${categories.map(category=>`<option value="${esc(category)}" ${filters.category===category?'selected':''}>${esc(category)}</option>`).join('')}</select></label>
+  <label for="admin-course-audience"><span id="course-audience-label">面向学员</span><select id="admin-course-audience" data-course-filter="audience" aria-labelledby="course-audience-label" aria-controls="admin-course-results"><option value="">全部范围</option>${[['unset','未指定'],['all','全体员工'],['departments','指定部门'],['people','指定员工']].map(([value,label])=>`<option value="${value}" ${filters.audience===value?'selected':''}>${label}</option>`).join('')}</select></label>
+  <button id="reset-course-filters" class="course-filter-reset" type="button" data-reset-course-filters ${hasCourseFilters()?'':'disabled'}>重置筛选</button>
+ </div><p id="course-filter-count" class="course-filter-count" role="status" aria-live="polite" aria-atomic="true">${courseFilterCount(list)}</p><div id="admin-course-results">${adminCourseTable(list)}</div>`;
+ return `${adminHeader('课程管理','维护课程内容与发布状态。',adminButton('＋ 添加课程','new-course','','primary'))}<div class="admin-filters" role="group" aria-label="课程发布状态">${['全部','已发布','草稿'].map(f=>`<button data-admin-tab="${f}" class="${adminView.filter===f?'active':''}" aria-pressed="${adminView.filter===f}">${f}</button>`).join('')}</div>${adminPanel('课程列表',controls)}`;
+}
+function updateAdminCourseResults(){
+ const results=document.getElementById('admin-course-results');if(!results)return;
+ const list=filteredAdminCourses();results.innerHTML=adminCourseTable(list);
+ document.getElementById('course-filter-count').textContent=courseFilterCount(list);
+ document.getElementById('reset-course-filters').disabled=!hasCourseFilters();
+}
+function updateCourseQuery(event){
+ if(event.target.id!=='admin-course-query'||event.isComposing)return;
+ adminView.courseFilters.query=event.target.value;updateAdminCourseResults();
+}
+document.addEventListener('input',updateCourseQuery);
+document.addEventListener('compositionend',updateCourseQuery);
+document.addEventListener('change',event=>{
+ const field=event.target.dataset.courseFilter;
+ if(!['category','audience'].includes(field))return;
+ adminView.courseFilters[field]=event.target.value;updateAdminCourseResults();
+});
+document.addEventListener('click',event=>{
+ if(!event.target.closest('button[data-reset-course-filters]'))return;
+ adminView.filter='全部';adminView.courseFilters={query:'',category:'',audience:''};render();
+ document.getElementById('admin-course-query')?.focus();
+});
 function planAudienceTarget(plan){if(plan?.audienceTarget?.mode==='unset')return{mode:'unset',values:[]};const target=courseAudience(plan);return target.mode==='unset'&&plan?.audience==='全体员工'?{mode:'all',values:[]}:target}
 function planAudienceLabel(plan){const target=planAudienceTarget(plan);return target.mode==='unset'?(plan.audienceTarget?'未指定':plan.audience||'未指定'):courseAudienceLabel({audienceTarget:target})}
 function planCourseLabel(plan){if(!Array.isArray(plan.courseIds))return plan.courses||'未选择课程';const names=plan.courseIds.map(id=>adminData.courses.find(c=>c.id===id)?.title).filter(Boolean);return names.length?names.join('、'):'未选择课程'}
