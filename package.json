@@ -1,0 +1,15 @@
+{
+  "name": "learning-platform-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static learning platform prototype prepared for GitHub, Vercel, and Cloudflare Pages.",
+  "scripts": {
+    "build": "node scripts/verify-static.mjs",
+    "check": "node scripts/verify-static.mjs",
+    "preview": "npx serve dist -l 4173"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

@@ -1,0 +1,19 @@
+# Local dependencies and tooling
+node_modules/
+.vercel/
+.wrangler/
+
+# Environment files: never commit real credentials
+.env
+.env.*
+!.env.example
+
+# Local logs and operating-system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+
