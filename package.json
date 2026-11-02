@@ -9,7 +9,7 @@
     "preview": "npx serve dist -l 4173"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24"
   }
 }
 
