@@ -14,7 +14,7 @@ const demoTrainingRecords={
  u5:[{title:'企业文化与价值观',minutes:45,passed:true},{title:'信息安全培训',minutes:30,passed:true},{title:'产品基础介绍',minutes:40,passed:false}]
 };
 let adminData;try{adminData=JSON.parse(localStorage.getItem('learning-admin-v1')||'null')||structuredClone(defaultAdminData)}catch{adminData=JSON.parse(JSON.stringify(defaultAdminData))}
-let adminView={filter:'全部',period:'本月',department:null,courseFilters:{query:'',category:'',audience:''}};
+let adminView={filter:'全部',period:'本月',department:null,courseFilters:{query:'',category:'',audience:''},listFilters:{learning:{query:'',department:'',status:''},exams:{query:'',audience:'',status:''},people:{query:'',department:'',role:''}}};
 function saveAdmin(){try{localStorage.setItem('learning-admin-v1',JSON.stringify(adminData))}catch{}}
 const adminKpis=[['进行中培训','6','plans','#fff0c2','exam'],['培训完成率','84%','learning','#dcecff','chart'],['待催学','12 人','learning','#e9e1fa','history'],['待考试','2 场','exams','#def3e9','exam']];
 function loginPage(){return `<main class="login-page"><div class="login-decor decor-one"></div><div class="login-decor decor-two"></div><div class="login-shell"><div class="login-intro"><span class="login-brand">${icon('logo')} 学习空间</span><p class="login-kicker">LEARNING SPACE</p><h1>培训平台</h1><p class="login-subtitle">员工端 · HR 管理端</p><div class="login-art" aria-hidden="true"><div class="ring"></div><div class="orb"></div><div class="pill"></div></div></div><section class="login-card" aria-labelledby="login-title"><div class="login-icon">${icon('book')}</div><h2 id="login-title">欢迎进入学习空间</h2><p>选择体验身份，进入对应页面。</p><form id="login-form"><fieldset class="role-choice"><legend>体验身份</legend><label class="role-option"><input type="radio" name="role" value="employee" checked><span class="role-symbol">${icon('book')}</span><span><strong>员工端</strong><small>学习课程、参加考试、查看记录</small></span><span class="role-radio"></span></label><label class="role-option"><input type="radio" name="role" value="hr"><span class="role-symbol hr">${icon('chart')}</span><span><strong>HR 管理端</strong><small>发布培训、跟进学习、查看数据</small></span><span class="role-radio"></span></label></fieldset><button class="primary login-submit" type="submit">进入演示 ${icon('arrow')}</button></form><p class="login-note">原型演示入口，不连接企业账号。</p></section></div></main>`}
@@ -82,9 +82,72 @@ function planCourseLabel(plan){if(!Array.isArray(plan.courseIds))return plan.cou
 function normalizePlanDate(value){const text=String(value||'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(text))return text;const match=text.match(/(?:(\d{4})\s*年\s*)?(\d{1,2})\s*月\s*(\d{1,2})\s*日/);if(!match)return '';const year=Number(match[1]||new Date().getFullYear()),month=Number(match[2]),day=Number(match[3]);const date=new Date(year,month-1,day);return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`:''}
 function planDeadlineLabel(value){const date=normalizePlanDate(value);if(!date)return String(value||'未设置');const [year,month,day]=date.split('-').map(Number);return `${year} 年 ${month} 月 ${day} 日`}
 function adminPlans(){return `${adminHeader('培训计划','选择课程与对象，安排培训时间。',adminButton('＋ 新建计划','new-plan','','primary'))}<div class="admin-plan-grid">${adminData.plans.map(p=>`<article class="admin-plan-card"><div class="admin-plan-top">${status(p.status)}<span>${esc(planDeadlineLabel(p.deadline))} 截止</span></div><h3>${esc(p.title)}</h3><p class="plan-card-details">${esc(planAudienceLabel(p))} · ${esc(planCourseLabel(p))}</p><div class="progress-caption"><span>完成进度</span><b>${p.progress}%</b></div><div class="track"><span style="width:${p.progress}%"></span></div><button data-admin-edit="plan" data-id="${p.id}">查看计划 ${icon('arrow')}</button></article>`).join('')}</div>`}
-function adminLearning(){const rows=adminData.people.map(p=>`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.department)}</td><td><div class="admin-inline-progress"><span class="admin-track"><i style="width:${p.progress}%"></i></span>${p.progress}%</div></td><td>${p.progress===100?status('已完成'):p.progress<60?'<span class="admin-status warn">需跟进</span>':status('进行中')}</td><td><button class="admin-link" data-admin-action="remind" data-id="${p.id}">提醒演示</button></td></tr>`);return `${adminHeader('学习管理','查看员工进度，识别需要跟进的任务。')}${adminPanel('员工学习进度',adminTable(['员工','部门','学习进度','状态','操作'],rows))}`}
-function adminExams(){return `${adminHeader('考试测评','管理考试安排与参与情况。',adminButton('＋ 新建考试','new-exam','','primary'))}${adminPanel('考试列表',adminTable(['考试名称','对象','截止日期','参与人数','状态','操作'],adminData.exams.map(e=>`<tr><td><strong>${esc(e.title)}</strong></td><td>${esc(e.audience)}</td><td>${esc(e.deadline)}</td><td>${e.participants} 人</td><td>${status(e.status)}</td><td><button class="admin-link" data-admin-edit="exam" data-id="${e.id}">查看</button></td></tr>`)))}`}
-function adminPeople(){return `${adminHeader('人员管理','查看参与培训的员工与部门。',`<div class="admin-head-actions">${adminButton('上传人员名单','upload-people')}${adminButton('＋ 添加员工','new-person','','primary')}</div>`)}${adminPanel('员工列表',adminTable(['员工','部门','角色','学习进度','操作'],adminData.people.map(p=>`<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.department)}</td><td>${esc(p.role)}</td><td>${p.progress}%</td><td><button class="admin-link" data-admin-edit="person" data-id="${p.id}">查看</button></td></tr>`)))}`}
+function learningStatus(person){const progress=Number(person.progress)||0;return progress===100?'已完成':progress<60?'需跟进':'进行中'}
+function managementListConfig(kind){
+ const people={data:adminData.people,queryLabel:'姓名 / 工号',placeholder:'输入姓名或工号',queryFields:['name','employeeId'],unit:'人',subject:'员工',fields:[['department','部门','全部部门'],[kind==='learning'?'status':'role',kind==='learning'?'学习状态':'角色',kind==='learning'?'全部状态':'全部角色']]};
+ return kind==='exams'?{data:adminData.exams,queryLabel:'考试名称',placeholder:'输入考试名称',queryFields:['title'],unit:'场考试',subject:'考试',fields:[['audience','参与对象','全部对象'],['status','考试状态','全部状态']]}:people;
+}
+function managementField(item,key,kind){
+ if(kind==='learning'&&key==='status')return learningStatus(item);
+ if(key==='department')return String(item.department||'未分组');
+ if(key==='role')return String(item.role||'员工');
+ return String(item[key]||'未指定');
+}
+function filteredManagementList(kind){
+ const config=managementListConfig(kind),filters=adminView.listFilters[kind],keyword=filters.query.trim().toLocaleLowerCase();
+ return config.data.filter(item=>(!keyword||config.queryFields.some(key=>String(item[key]??'').toLocaleLowerCase().includes(keyword)))&&config.fields.every(([key])=>!filters[key]||managementField(item,key,kind)===filters[key]));
+}
+function managementEmployeeName(person){return `<strong>${esc(person.name)}</strong>${person.employeeId?`<small class="list-employee-id">工号 ${esc(person.employeeId)}</small>`:''}`}
+function managementListTable(kind,list){
+ let head,rows;
+ if(kind==='exams'){
+  head=['考试名称','对象','截止日期','参与人数','状态','操作'];
+  rows=list.map(e=>`<tr><td><strong>${esc(e.title)}</strong></td><td>${esc(managementField(e,'audience',kind))}</td><td>${esc(e.deadline)}</td><td>${e.participants} 人</td><td>${status(e.status)}</td><td><button class="admin-link" data-admin-edit="exam" data-id="${esc(e.id)}">查看</button></td></tr>`);
+ }else if(kind==='learning'){
+  head=['员工','部门','学习进度','状态','操作'];
+  rows=list.map(p=>`<tr><td>${managementEmployeeName(p)}</td><td>${esc(managementField(p,'department',kind))}</td><td><div class="admin-inline-progress"><span class="admin-track"><i style="width:${Number(p.progress)||0}%"></i></span>${Number(p.progress)||0}%</div></td><td>${learningStatus(p)==='需跟进'?'<span class="admin-status warn">需跟进</span>':status(learningStatus(p))}</td><td><button class="admin-link" data-admin-action="remind" data-id="${esc(p.id)}">提醒演示</button></td></tr>`);
+ }else{
+  head=['员工','部门','角色','学习进度','操作'];
+  rows=list.map(p=>`<tr><td>${managementEmployeeName(p)}</td><td>${esc(managementField(p,'department',kind))}</td><td>${esc(managementField(p,'role',kind))}</td><td>${p.progress}%</td><td><button class="admin-link" data-admin-edit="person" data-id="${esc(p.id)}">查看</button></td></tr>`);
+ }
+ const config=managementListConfig(kind);
+ const empty=config.data.length?`<div class="course-filter-empty"><strong>没有符合条件的${config.subject}</strong><p>试试其他关键词或放宽筛选条件。</p><button type="button" class="admin-btn soft" data-reset-list="${kind}">清空筛选</button></div>`:`<div class="course-filter-empty"><strong>暂无${config.subject}</strong><p>${kind==='exams'?'点击右上角「新建考试」添加考试。':'可在人员管理中添加员工或上传人员名单。'}</p></div>`;
+ return adminTable(head,rows,empty);
+}
+function managementListCount(kind,list){const config=managementListConfig(kind);return `显示 ${list.length} / 共 ${config.data.length} ${config.unit}`}
+function managementHasFilters(kind){return Object.values(adminView.listFilters[kind]).some(Boolean)}
+function managementFilterPanel(kind){
+ const config=managementListConfig(kind),filters=adminView.listFilters[kind],list=filteredManagementList(kind),prefix=`admin-${kind}`;
+ const selectFields=config.fields.map(([key,label,all])=>{
+  const options=[...new Set([...config.data.map(item=>managementField(item,key,kind)),...(filters[key]?[filters[key]]:[])])].sort((a,b)=>a.localeCompare(b,'zh-CN'));
+  return `<label for="${prefix}-${key}"><span id="${prefix}-${key}-label">${label}</span><select id="${prefix}-${key}" data-list-kind="${kind}" data-list-field="${key}" aria-labelledby="${prefix}-${key}-label" aria-controls="${prefix}-results"><option value="">${all}</option>${options.map(value=>`<option value="${esc(value)}" ${filters[key]===value?'selected':''}>${esc(value)}</option>`).join('')}</select></label>`;
+ }).join('');
+ return `<div class="course-filter-bar" role="search" aria-label="${kind==='learning'?'学习进度':kind==='exams'?'考试':'人员'}筛选"><label for="${prefix}-query"><span>${config.queryLabel}</span><span class="course-filter-input">${icon('search')}<input type="search" id="${prefix}-query" data-list-kind="${kind}" data-list-field="query" placeholder="${config.placeholder}" maxlength="120" value="${esc(filters.query)}" aria-controls="${prefix}-results"></span></label>${selectFields}<button type="button" id="${prefix}-reset" class="course-filter-reset" data-reset-list="${kind}" ${managementHasFilters(kind)?'':'disabled'}>重置筛选</button></div><p id="${prefix}-count" class="course-filter-count" role="status" aria-live="polite" aria-atomic="true">${managementListCount(kind,list)}</p><div id="${prefix}-results">${managementListTable(kind,list)}</div>`;
+}
+function updateManagementList(kind){
+ const results=document.getElementById(`admin-${kind}-results`);if(!results)return;
+ const list=filteredManagementList(kind);results.innerHTML=managementListTable(kind,list);
+ document.getElementById(`admin-${kind}-count`).textContent=managementListCount(kind,list);
+ document.getElementById(`admin-${kind}-reset`).disabled=!managementHasFilters(kind);
+}
+function handleManagementFilter(event){
+ const {listKind:kind,listField:field}=event.target.dataset;
+ if(!Object.hasOwn(adminView.listFilters,kind)||!Object.hasOwn(adminView.listFilters[kind],field)||event.isComposing)return;
+ if(field==='query'&&event.type==='change'||field!=='query'&&event.type!=='change')return;
+ adminView.listFilters[kind][field]=event.target.value;updateManagementList(kind);
+}
+document.addEventListener('input',handleManagementFilter);
+document.addEventListener('compositionend',handleManagementFilter);
+document.addEventListener('change',handleManagementFilter);
+document.addEventListener('click',event=>{
+ const kind=event.target.closest('button[data-reset-list]')?.dataset.resetList;
+ if(!Object.hasOwn(adminView.listFilters,kind))return;
+ for(const key of Object.keys(adminView.listFilters[kind]))adminView.listFilters[kind][key]='';
+ render();document.getElementById(`admin-${kind}-query`)?.focus();
+});
+function adminLearning(){return `${adminHeader('学习管理','查看员工进度，识别需要跟进的任务。')}${adminPanel('员工学习进度',managementFilterPanel('learning'))}`}
+function adminExams(){return `${adminHeader('考试测评','管理考试安排与参与情况。',adminButton('＋ 新建考试','new-exam','','primary'))}${adminPanel('考试列表',managementFilterPanel('exams'))}`}
+function adminPeople(){return `${adminHeader('人员管理','查看参与培训的员工与部门。',`<div class="admin-head-actions">${adminButton('上传人员名单','upload-people')}${adminButton('＋ 添加员工','new-person','','primary')}</div>`)}${adminPanel('员工列表',managementFilterPanel('people'))}`}
 function adminDataPage(){const selected=adminView.department;const visiblePeople=selected?adminData.people.filter(p=>p.department===selected):adminData.people;const deptRows=departmentProgress().map(([label,val])=>`<button class="admin-bar admin-bar-button ${selected===label?'selected':''}" data-admin-action="filter-department" data-id="${esc(label)}" aria-pressed="${selected===label}"><span>${esc(label)}</span><span class="admin-track"><i style="width:${val}%"></i></span><strong>${val}%</strong>${icon('arrow')}</button>`).join('');const peopleRows=visiblePeople.map(p=>{const info=personTraining(p);return `<tr><td><strong>${esc(p.name)}</strong></td><td>${esc(p.department)}</td><td>${info.hasRecords?`${info.minutes} 分钟`:'—'}</td><td>${info.hasRecords?`${info.passed.length} 门`:'—'}</td><td class="passed-course-cell">${info.hasRecords?(info.passed.length?esc(info.passed.map(r=>r.title).join('、')):'暂无通过课程'):'暂无学习记录'}</td><td><button class="admin-link" data-admin-action="view-person-training" data-id="${esc(p.id)}">查看明细</button></td></tr>`});return `${adminHeader('培训数据','按部门查看每位员工的学习情况。',adminButton(selected?'导出本部门员工数据':'导出全部员工数据','export-data','','primary'))}<div class="admin-filters">${['本月','本季度'].map(x=>`<button data-admin-tab="${x}" class="${adminView.period===x?'active':''}">${x}</button>`).join('')}</div><div class="admin-kpis data-kpis">${[['培训覆盖率','96%'],['课程完成率','84%'],['考试通过率','91%'],['平均学习时长','4.8h']].map(([k,v],i)=>`<div class="admin-kpi" style="background:${['#fff0c2','#dcecff','#e9e1fa','#def3e9'][i]}"><span>${k}</span><strong>${v}</strong><small>${adminView.period} · 示例指标</small></div>`).join('')}</div>${adminPanel('部门完成情况',`<div class="admin-bars">${deptRows}</div><p class="admin-hint">点击部门查看员工明细。上方比例为部门员工的平均学习进度。</p>`)}<div class="training-detail-panel">${adminPanel(selected?`${esc(selected)} · 员工培训明细`:'全部员工 · 培训明细',`<div class="training-detail-meta"><span>共 ${visiblePeople.length} 人 · 个人学习记录为累计演示数据 · 导出按当前部门筛选</span>${selected?adminButton('查看全部部门','filter-department'):''}</div>${adminTable(['员工','部门','观看时长','通过课程','已通过课程名称','操作'],peopleRows,'该部门暂无员工')}`)}</div>`}
 function adminConfig(){return `${adminHeader('员工首页配置','管理员工端欢迎语与运营 Banner 的展示内容。')}<div class="admin-config-grid">${adminPanel('展示内容',`<form id="config-form" class="admin-form"><label>欢迎语<input name="welcome" maxlength="60" value="${esc(homeConfig.welcome)}" required></label><label>Banner 标题<input name="title" maxlength="32" value="${esc(homeConfig.banner.title)}" required></label><label>按钮文字<input name="action" maxlength="12" value="${esc(homeConfig.banner.action)}" required></label><label>上方标记<input name="eyebrow" maxlength="25" value="${esc(homeConfig.banner.eyebrow)}"></label><button class="primary" type="submit">保存展示内容</button></form>`)}${adminPanel('员工端预览',`<div class="admin-banner-preview"><small>${esc(homeConfig.banner.eyebrow)}</small><h3>${esc(homeConfig.banner.title)}</h3><span>${esc(homeConfig.banner.action)} →</span></div><p class="admin-preview-welcome">${esc(homeConfig.welcome)}</p><p class="admin-hint">保存后切换至员工端即可查看效果。内容仅保存在本浏览器。</p>${adminButton('恢复管理端演示数据','reset-demo')}`)}</div>`}
 function adminPage(){switch(state.page){case'admin-home':return adminHome();case'admin-courses':return adminCourses();case'admin-plans':return adminPlans();case'admin-learning':return adminLearning();case'admin-exams':return adminExams();case'admin-people':return adminPeople();case'admin-data':return adminDataPage();case'admin-config':return adminConfig();default:return adminHome()}}
